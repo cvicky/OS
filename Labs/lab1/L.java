@@ -91,17 +91,18 @@ public class Linker{
 						//}
 						symbollistlength = symbollist.size();
 						if(symbollistlength>0){
-							//for(int i = 0; i < symbollistlength; i++) {   
+							for(int i = 0; i < symbollistlength; i++) {   
 							//	System.out.println(symbollist.get(i).getName());
-	    					//	if(symbollist.get(i).getName().equals(symname)){
+	    						if(symbollist.get(i).getName().equals(symname)){
 	    					//symbollist.add(sym);
 
-							for( Symbol newsym: symbollist){
-								if(newsym.getName().equals(textStr[notdone]) ){
+							//for( Symbol newsym: symbollist){
+							//	if(newsym.getName().equals(textStr[notdone]) ){
 									System.out.println("Error: The variable " +symname+" is multiply defined; first value used.");
 									errorlist.add("Error: The variable " +symname+" is multiply defined; first value used.");
 								} else{
 									symbollist.add(sym);
+									break;
 								}
 								
 							}
@@ -109,8 +110,8 @@ public class Linker{
 							symbollist.add(sym);
 						}
 
-						for (Symbol p : symbollist)
-    						System.out.println( "these are symbols: "+ p.getName() + p.getDefinition() );
+						//for (Symbol p : symbollist)
+    					//	System.out.println( "these are symbols: "+ p.getName() + p.getDefinition() );
 
 						notdone+=2;
 
@@ -180,13 +181,26 @@ public class Linker{
 			System.out.print(textStr[q]+ " ");
 		}
 
+		//print out symbol table
 		System.out.println();
-		
-		for (Symbol p : symbollist)
-    			System.out.println( "these are symbols: "+ p.getName() + p.getDefinition() ); 
+		System.out.println( "Symbol Table");
+		for (Symbol p : symbollist){
+    			System.out.println( p.getName() +" = " +p.getDefinition() ); 
+		}
 
-    	for (String s : errorlist)
+		//print out memory map
+		System.out.println();
+		System.out.println("Memory Map");
+		for(int b=0; b<modulesum; b++){
+			System.out.println( b+ ": ");
+		}
+		
+
+
+
+    	for (String s : errorlist){
     			System.out.println(s); 
+    	}
 
 		
 	} //endmain
