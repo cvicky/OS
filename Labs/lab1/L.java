@@ -1,5 +1,6 @@
 import java.util.Scanner;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 //package linkerlab;
 
@@ -32,19 +33,14 @@ public class Linker{
 		String textStr[] = string.split("\\s+");
 
 		int arraylength = textStr.length;
-/*		
-		System.out.println(textStr[0]);
-		System.out.println(textStr[1]);
-
-		for(int q =0; q< arraylength; q++){
-			System.out.println(textStr[q]);
-		}
-*/
 
 		//all the arraylists
 		ArrayList<Info> wholesymbollist= new ArrayList<Info>();
 		int wholesymbollistlength;
 		int symbollistlength;
+		ArrayList<String> wholeSymUsedInModList = new ArrayList<String>(); //type string b/c can't have ArrayList if int(primitive)
+		//ArrayList<Info> uselist = new ArrayList<Info>();
+		//ArrayList<Info> prgmtextlist = new ArrayList<Info>();
 		ArrayList<Module> moduleslist= new ArrayList<Module>(); 
 		ArrayList<String> errorlist = new ArrayList<String>();
 		
@@ -65,7 +61,7 @@ public class Linker{
 		int notdone = 0; //index in textStr array
 
 		//============================================================//
-		//			FIRST PASS                            //
+		//						FIRST PASS                            //
 		//============================================================//
 		while(notdone<arraylength){
 			ArrayList<Info> symbollist= new ArrayList<Info>();
@@ -99,10 +95,6 @@ public class Linker{
 							for(int i = 0; i < symbollistlength; i++) {   
 							//	System.out.println(symbollist.get(i).getName());
 	    						if(symbollist.get(i).getName().equals(symname)){
-	    					//symbollist.add(sym);
-
-							//for( Symbol newsym: symbollist){
-							//	if(newsym.getName().equals(textStr[notdone]) ){
 									System.out.println("Error: The variable " +symname+" is multiply defined; first value used.");
 									errorlist.add("Error: The variable " +symname+" is multiply defined; first value used.");
 								} else{
@@ -119,21 +111,26 @@ public class Linker{
 						if(wholesymbollistlength>0){
 							for(int i = 0; i < wholesymbollistlength; i++) {   
 							//	System.out.println(symbollist.get(i).getName());
-	    							if(wholesymbollist.get(i).getName().equals(symname)){
+	    						if(wholesymbollist.get(i).getName().equals(symname)){
 									System.out.println("Error: The variable " +symname+" is multiply defined; first value used.");
 									errorlist.add("Error: The variable " +symname+" is multiply defined; first value used.");
 								} else{
+									//add it to the whole symbol list
 									wholesymbollist.add(sym);
+									//add which module it was defined in to wholeSymUsedInModList
+									wholeSymUsedInModList.add(Integer.toString(modulecount) );
+
 									break;
 								}
+								
 							}
 						} else{
+							//add it to the whole symbol list
 							wholesymbollist.add(sym);
+							//add which module it was defined in to wholeSymUsedInModList
+									wholeSymUsedInModList.add(Integer.toString(modulecount) );
 						}
 						//----------------------------------------
-
-						//for (Symbol p : symbollist)
-    					//	System.out.println( "these are symbols: "+ p.getName() + p.getDefinition() );
 
 						notdone+=2;
 
@@ -184,6 +181,7 @@ public class Linker{
 							reladdress+= modulesum;
 							textStr[notdone+1]= "" +reladdress;
 							System.out.println("This is the new rel address: " + textStr[notdone+1] + " ");
+
 						}
 
 						addresstype=textStr[notdone];
@@ -246,30 +244,29 @@ public class Linker{
 		for(int b=0; b<modulesum; b++){
 			System.out.println( b+ ": ");
 		}
-
-
 */
 
-    	for (String s : errorlist){
-    			System.out.println(s); 
-    	}
-
     	//=============================================================//
-	//	 		SECOND PASS   			       //
-	//=============================================================//
+		//						SECOND PASS 						   //
+		//=============================================================//
     	int modNum; //number for the for loop
     	int useListSize;
+    	int ptListSize;
     	int useNum;
     	String ulSymName; //use list symbol name
     	int addressIndex; //address location that will be used
     	int plAddress; //address in prgmtext list
     	int last3digits;
     	int symDef; // current symbol definition
+    	int[] symIsUsedArray = new int[wholesymbollist.size()];
 
     	//Go through each module in the modulesList and edit the addresses
     	for( modNum=0; modNum < moduleslist.size(); modNum++){
     		useListSize = moduleslist.get(modNum).getUseList().size();
-    		System.out.println("The size of the list in mod " + modNum + " is "+ useListSize);
+    		ptListSize = moduleslist.get(modNum).getPrgmTextList().size();
+    		System.out.println("The size of the uselist in mod " + modNum + " is "+ useListSize);
+
+    		int[] ptIsUsedArray= new int[ptListSize]; 
 
     		//Go through the uselist to get the symbols names and address index in prgmtext
     		for(useNum=0; useNum < useListSize; useNum++){
@@ -284,30 +281,124 @@ public class Linker{
     			System.out.println("The last 3 digits are: " + last3digits);
 
     			//If the first address is the end of the chain
+    		//	wholesymbollistlength = wholesymbollist.size();
+    		//	int wslcounter=0;
     			if(last3digits == 777){
-    				for (Info wsl : wholesymbollist){
-    					if(wsl.getName().equals(ulSymName) ){
-    						symDef= wsl.getValue();
+    				//for (Info wsl : wholesymbollist){
+    				for(int i=0; i<wholesymbollist.size(); i++){
+    				/*	if( wslcounter==wholesymbollistlength-1){ // it was never defined
+						//	errorlist.add("Error: X21 is not defined; zero used.");
+							plAddress= ( (plAddress/1000)*1000);
+							//set the new address
+							moduleslist.get(modNum).getPrgmTextList().get(addressIndex).setValue(plAddress);
+    					}
+					*/
+    				//	if(wsl.getName().equals(ulSymName) ){
+    				//		symDef= wsl.getValue();
+    					if(wholesymbollist.get(i).getName().equals(ulSymName) ){
+    						symDef = wholesymbollist.get(i).getValue();
     						System.out.println("The def of " + ulSymName+ " = " + symDef);
     						plAddress= ( (plAddress/1000)*1000)+ symDef;
     						//set the new address
     						moduleslist.get(modNum).getPrgmTextList().get(addressIndex).setValue(plAddress);
     						System.out.println( "So the new address is: " + plAddress);
-						}
-					}
-    			}
 
+    						
+    						//================================================
+    						//	ERROR: I OR A ADDRESS USED AS E
+    						//================================================	
+    						//check if address type is I
+    						if(moduleslist.get(modNum).getPrgmTextList().get(addressIndex).getName().equals("I") ){
+    							errorlist.add("Error: I type address on use chain; treated as E type.");
+    						}
+    						//check if address type is A
+    						if(moduleslist.get(modNum).getPrgmTextList().get(addressIndex).getName().equals("A") ){
+    							errorlist.add("Error: A type address on use chain; treated as E type.");
+    						}
+
+    						//====================================================
+    						//	ERROR: E TYPE NOT ON USE CHAIN, TREATED AS I TYPE
+    						//====================================================	
+    						//populate the ptIsUsedArray with 1 for if the address is used
+    						//index will stay 0 if it isn't used
+    						ptIsUsedArray[addressIndex]=1;
+
+    						//================================================
+    						//	ERROR: SYMBOL WAS DEFINED BUT NEVER USED
+    						//================================================
+    						//mark that the symbol was used in symIsUsedArray
+    						symIsUsedArray[i]=1; 
+    					
+    						    						
+						} //endif
+						
+    				//	wslcounter++;
+
+					} //endfor
+    			} //endif
+
+    			
+			
     			//If there is a chain of External address
+    			//wslcounter=0;
     			while( last3digits != 777){
-    				//Go through the wholesymbollist to find the matching symbol and get the value
-    				for (Info wsl : wholesymbollist){
-    					if(wsl.getName().equals(ulSymName) ){
-    						symDef= wsl.getValue();
+    				
+    				//================================================
+					//	ERROR: POINTER EXCEEDS MODULE SIZE
+					//================================================	
+    				//Check if last3digits exceed the prgmtextlist size
+    				if( last3digits > moduleslist.get(modNum).getPrgmTextList().size() ){
+    					errorlist.add("Error: Pointer in use chain exceeds module size; chain terminated.");
+    					break;
+    				}
+    				
+
+    				//Go through the wholesymbollist to find the matching symbol and get the value  				
+	   				//for (Info wsl : wholesymbollist){
+    				for(int i=0; i<wholesymbollist.size(); i++){
+
+    				/*	if( wslcounter==wholesymbollistlength-1){ // it was never defined
+						//	errorlist.add("Error: X21 is not defined; zero used.");
+							plAddress= ( (plAddress/1000)*1000);
+							//set the new address
+							moduleslist.get(modNum).getPrgmTextList().get(addressIndex).setValue(plAddress);
+							break;
+    					}
+					*/
+    				//	if(wsl.getName().equals(ulSymName) ){
+    				//		symDef= wsl.getValue();
+    					if(wholesymbollist.get(i).getName().equals(ulSymName) ){
+    						symDef = wholesymbollist.get(i).getValue();
     						System.out.println("The def of " + ulSymName+ " = " + symDef);
     						plAddress= ( (plAddress/1000)*1000)+ symDef;
     						//set the new address
     						moduleslist.get(modNum).getPrgmTextList().get(addressIndex).setValue(plAddress);
     						System.out.println( "So the new address is: " + plAddress);
+
+    						//================================================
+    						//	ERROR: I OR A ADDRESS USED AS E
+    						//================================================	
+    						//check if address type is I
+    						if(moduleslist.get(modNum).getPrgmTextList().get(addressIndex).getName().equals("I") ){
+    							errorlist.add("Error: I type address on use chain; treated as E type.");
+    						}
+    						//check if address type is A
+    						if(moduleslist.get(modNum).getPrgmTextList().get(addressIndex).getName().equals("A") ){
+    							errorlist.add("Error: A type address on use chain; treated as E type.");
+    						}
+
+    						//====================================================
+    						//	ERROR: E TYPE NOT ON USE CHAIN, TREATED AS I TYPE
+    						//====================================================	
+    						//populate the isUsedArray with 1 for if the address is used
+    						//index will stay 0 if it isn't used
+    						ptIsUsedArray[addressIndex]=1;
+
+    						//================================================
+    						//	ERROR: SYMBOL WAS DEFINED BUT NEVER USED
+    						//================================================
+    						//mark that the symbol was used in symIsUsedArray
+    						symIsUsedArray[i]=1; 
 
 		    				//Go to the index in the prgmtextlist given by last3digits
 		    				addressIndex = last3digits;
@@ -322,12 +413,61 @@ public class Linker{
 		    				//set the new address
 		    				moduleslist.get(modNum).getPrgmTextList().get(addressIndex).setValue(plAddress);
 		    				System.out.println( "So the new address is: " + plAddress);
-    					} //endif
-				} //endfor 
+
+		    				//====================================================
+    						//	ERROR: E TYPE NOT ON USE CHAIN, TREATED AS I TYPE
+    						//====================================================	
+    						//populate the ptIsUsedArray with 1 for if the address is used
+    						//index will stay 0 if it isn't used
+    						ptIsUsedArray[addressIndex]=1;
+
+    						//================================================
+    						//	ERROR: SYMBOL WAS DEFINED BUT NEVER USED
+    						//================================================
+    						//mark that the symbol was used in symIsUsedArray
+    						symIsUsedArray[i]=1; 
+
+						} //endif
+						
+						
+    				//	wslcounter++;
+    		
+					} //endfor 
+					
+					
+
     			} //endwhile last3digits != 777
     		}//endfor uselist
-     	} //endfor moduleslist
 
+    		//====================================================
+			//	ERROR: E TYPE NOT ON USE CHAIN, TREATED AS I TYPE
+			//====================================================	
+			//check the isUsedArray for any 0's and see if it is type E in the prgmTextList
+			for(int j=0; j<ptListSize; j++){
+				System.out.println("This ptIsUsed is " + ptIsUsedArray[j]+ " at index "+ j);
+				if(ptIsUsedArray[j]==0 && moduleslist.get(modNum).getPrgmTextList().get(j).getName().equals("E") ){
+					//add to errorlist
+					errorlist.add("Error: E type address not on use chain; treated as I type.");
+				}
+			}
+
+     	} //endfor moduleslist
+     	//================================================
+		//	ERROR: SYMBOL WAS DEFINED BUT NEVER USED
+		//================================================
+		//need to check after all the modules are done
+		System.out.println("The size of the whole symbol list is " + wholesymbollist.size());
+     	for(int j=0; j<wholesymbollist.size(); j++){
+			System.out.println("This symbolIsUsedis " + symIsUsedArray[j]+ " at index "+ j);
+			if(symIsUsedArray[j]==0){
+				//add to errorlist
+				errorlist.add("Warning: "+ wholesymbollist.get(j).getName() + "  was defined in module " + wholeSymUsedInModList.get(j) + " but was never used.");
+				//System.out.println( wholeSymUsedInModList.size());
+
+			}
+		}
+
+     	//------------------------------------------------------------
      	//print out the symbol table and addresses
 
      	//print out symbol table
@@ -359,5 +499,8 @@ public class Linker{
     			System.out.println(s); 
     	}
 
+		
+
+		
 	} //endmain
 } //endLinker
