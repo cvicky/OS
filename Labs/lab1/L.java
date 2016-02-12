@@ -38,15 +38,18 @@ public class Linker{
 		ArrayList<Info> wholesymbollist= new ArrayList<Info>();
 		int wholesymbollistlength;
 		int symbollistlength;
-		ArrayList<String> wholeSymUsedInModList = new ArrayList<String>(); //type string b/c can't have ArrayList if int(primitive)
+		ArrayList<String> wholeSymDefinedInModList = new ArrayList<String>(); //type string b/c can't have ArrayList if int(primitive)
 		//ArrayList<Info> uselist = new ArrayList<Info>();
 		//ArrayList<Info> prgmtextlist = new ArrayList<Info>();
+		ArrayList<String> moduleRunningSum = new ArrayList<String>(); //type string b/c can't have ArrayList if int(primitive)
+		ArrayList<String> originalSymDefValueList = new ArrayList<String>(); //type string b/c can't have ArrayList if int(primitive)
 		ArrayList<Module> moduleslist= new ArrayList<Module>(); 
 		ArrayList<String> errorlist = new ArrayList<String>();
 		
 		int defcount=0; //how many def pairs appear in the module
 		String symname; //symbol name
 		int defvalue; //defined value of symbol
+		int originalDefValue;
 		int deftotal=0; //how many defs total for the symbol and def array in 2nd pass
 		int usecount=0; //how many use pairs
 		String usename; //name of symbol being used
@@ -57,6 +60,7 @@ public class Linker{
 		int address;
 		int linecount=0; //which line in the module
 		int modulesum=0; //running sum for addresses
+		moduleRunningSum.add(Integer.toString(modulesum) ); //add the first value of modulesum since it is initialized
 		int modulecount=0; //how many modules
 		int notdone = 0; //index in textStr array
 
@@ -79,6 +83,8 @@ public class Linker{
 						symname = textStr[notdone];
 						//update the symbol definition in the textstr[] array
 						defvalue = Integer.parseInt(textStr[notdone+1]);
+						originalDefValue = defvalue;
+						//this is the new def value
 						defvalue+= modulesum;
 						textStr[notdone+1]= "" +defvalue;
 						System.out.println("This is the new def value: " + textStr[notdone+1]);
@@ -117,8 +123,10 @@ public class Linker{
 								} else{
 									//add it to the whole symbol list
 									wholesymbollist.add(sym);
-									//add which module it was defined in to wholeSymUsedInModList
-									wholeSymUsedInModList.add(Integer.toString(modulecount) );
+									//add which module it was defined in to wholeSymDefinedInModList
+									wholeSymDefinedInModList.add(Integer.toString(modulecount) );
+									//add the original sym def value to the originalSymDefValueList
+									originalSymDefValueList.add(Integer.toString(originalDefValue) );
 
 									break;
 								}
@@ -127,8 +135,10 @@ public class Linker{
 						} else{
 							//add it to the whole symbol list
 							wholesymbollist.add(sym);
-							//add which module it was defined in to wholeSymUsedInModList
-									wholeSymUsedInModList.add(Integer.toString(modulecount) );
+							//add which module it was defined in to wholeSymDefinedInModList
+							wholeSymDefinedInModList.add(Integer.toString(modulecount) );
+							//add the original sym def value to the originalSymDefValueList
+							originalSymDefValueList.add(Integer.toString(originalDefValue) );
 						}
 						//----------------------------------------
 
@@ -203,6 +213,7 @@ public class Linker{
 			System.out.println("This is the end of module " + modulecount);	
 			modulecount++; //end of a module, increment the module count
 			modulesum+=prgmtextcount; //increment the runnning module sum
+			moduleRunningSum.add(Integer.toString(modulesum) ); //add the runningsum for the current module
 
 			linecount++;//next line, new module
 
@@ -210,7 +221,36 @@ public class Linker{
 			//System.out.println(textStr[notdone]);
 		}//endwhile of FIRST PASS
 
+		//==========================================================
+		//	ERROR: VALUE OF SYMBOL IS OUTSIDE OF MODULE, ZERO USED
+		//==========================================================
+
+		int definedInMod;	
+		int modulesize;
+
+	  		//Iterate through the symbol original value list
+		for(int i=0; i<originalSymDefValueList.size(); i++){
+			originalDefValue = Integer.parseInt(originalSymDefValueList.get(i) );
+			System.out.println("the original symbol value: " +Integer.parseInt(originalSymDefValueList.get(i) ) );
+			//check which module the symbol was defined in
+			definedInMod =Integer.parseInt(wholeSymDefinedInModList.get(i));
+			System.out.println("it was defined in the module: " +Integer.parseInt(wholeSymDefinedInModList.get(i)) ); //need to parse b/c it's a string
+			//get the size of the module it was defined in
+			modulesize = moduleslist.get(definedInMod).getPrgmTextList().size();
+			//modulesize = 
+			System.out.println("This is the size of module " + definedInMod + " : " + moduleslist.get(definedInMod).getPrgmTextList().size() );
+			//check if the originalDefValue is larger than the module size -1 b/c these are index values starting from 0
+			if(originalDefValue > modulesize-1){
+				wholesymbollist.get(i).setValue( Integer.parseInt( moduleRunningSum.get(definedInMod) ) ); //parse b/c moduleRunningSum is String values
+				errorlist.add("Error: The value of " + wholesymbollist.get(i).getName() + " is outside module " + definedInMod + "; zero (relative) used.");
+				//System.out.println("Error: the value of " + wholesymbollist.get(i).getName() + " is outside module " + definedInMod + "; zero (relative) used.");
+			
+			}
 		
+				
+		}
+
+
 		System.out.println( "The total symbol count is: " + deftotal);
 		System.out.println( "The total prgm text count is: " + modulesum);
 
@@ -253,6 +293,7 @@ public class Linker{
     	int useListSize;
     	int ptListSize;
     	int useNum;
+    	int found;
     	String ulSymName; //use list symbol name
     	int addressIndex; //address location that will be used
     	int plAddress; //address in prgmtext list
@@ -281,21 +322,14 @@ public class Linker{
     			System.out.println("The last 3 digits are: " + last3digits);
 
     			//If the first address is the end of the chain
-    		//	wholesymbollistlength = wholesymbollist.size();
-    		//	int wslcounter=0;
+    			wholesymbollistlength = wholesymbollist.size();
+  
     			if(last3digits == 777){
-    				//for (Info wsl : wholesymbollist){
-    				for(int i=0; i<wholesymbollist.size(); i++){
-    				/*	if( wslcounter==wholesymbollistlength-1){ // it was never defined
-						//	errorlist.add("Error: X21 is not defined; zero used.");
-							plAddress= ( (plAddress/1000)*1000);
-							//set the new address
-							moduleslist.get(modNum).getPrgmTextList().get(addressIndex).setValue(plAddress);
-    					}
-					*/
-    				//	if(wsl.getName().equals(ulSymName) ){
-    				//		symDef= wsl.getValue();
+    				//found=0; //0 meand symbol is not found in sybmol list
+    				for(int i=0; i<wholesymbollistlength; i++){
+    					
     					if(wholesymbollist.get(i).getName().equals(ulSymName) ){
+    						found=1; //symbol was defined in symbol list
     						symDef = wholesymbollist.get(i).getValue();
     						System.out.println("The def of " + ulSymName+ " = " + symDef);
     						plAddress= ( (plAddress/1000)*1000)+ symDef;
@@ -331,10 +365,17 @@ public class Linker{
     					
     						    						
 						} //endif
-						
-    				//	wslcounter++;
 
 					} //endfor
+
+					//if it reaches here it wasn't found
+				/*	if(found == 0){ // it was never defined
+						errorlist.add("Error: "+ ulSymName + " is not defined; zero used.");
+						plAddress= ( (plAddress/1000)*1000);
+						//set the new address
+						moduleslist.get(modNum).getPrgmTextList().get(addressIndex).setValue(plAddress);
+    				}
+				*/	
     			} //endif
 
     			
@@ -342,7 +383,7 @@ public class Linker{
     			//If there is a chain of External address
     			//wslcounter=0;
     			while( last3digits != 777){
-    				
+    				//found =0;
     				//================================================
 					//	ERROR: POINTER EXCEEDS MODULE SIZE
 					//================================================	
@@ -354,7 +395,6 @@ public class Linker{
     				
 
     				//Go through the wholesymbollist to find the matching symbol and get the value  				
-	   				//for (Info wsl : wholesymbollist){
     				for(int i=0; i<wholesymbollist.size(); i++){
 
     				/*	if( wslcounter==wholesymbollistlength-1){ // it was never defined
@@ -365,9 +405,9 @@ public class Linker{
 							break;
     					}
 					*/
-    				//	if(wsl.getName().equals(ulSymName) ){
-    				//		symDef= wsl.getValue();
+    				
     					if(wholesymbollist.get(i).getName().equals(ulSymName) ){
+    					//	found =1;
     						symDef = wholesymbollist.get(i).getValue();
     						System.out.println("The def of " + ulSymName+ " = " + symDef);
     						plAddress= ( (plAddress/1000)*1000)+ symDef;
@@ -433,7 +473,15 @@ public class Linker{
     				//	wslcounter++;
     		
 					} //endfor 
-					
+
+					//if it reaches here it wasn't found
+				/*	if(found == 0){ // it was never defined
+						errorlist.add("Error: X21 is not defined; zero used.");
+						plAddress= ( (plAddress/1000)*1000);
+						//set the new address
+						moduleslist.get(modNum).getPrgmTextList().get(addressIndex).setValue(plAddress);
+    				}
+				*/	
 					
 
     			} //endwhile last3digits != 777
@@ -461,8 +509,8 @@ public class Linker{
 			System.out.println("This symbolIsUsedis " + symIsUsedArray[j]+ " at index "+ j);
 			if(symIsUsedArray[j]==0){
 				//add to errorlist
-				errorlist.add("Warning: "+ wholesymbollist.get(j).getName() + "  was defined in module " + wholeSymUsedInModList.get(j) + " but was never used.");
-				//System.out.println( wholeSymUsedInModList.size());
+				errorlist.add("Warning: "+ wholesymbollist.get(j).getName() + "  was defined in module " + wholeSymDefinedInModList.get(j) + " but never used.");
+				//System.out.println( wholeSymDefinedInModList.size());
 
 			}
 		}
@@ -498,8 +546,7 @@ public class Linker{
 		for (String s : errorlist){
     			System.out.println(s); 
     	}
-
-		
+    	System.out.println();
 
 		
 	} //endmain
